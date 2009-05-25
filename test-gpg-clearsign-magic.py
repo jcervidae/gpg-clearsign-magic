@@ -3,7 +3,7 @@
 #
 # Author: Jonathan Cervidae <jonathan.cervidae@gmail.com>
 # PGP Fingerprint: 2DC0 0A44 123E 6CC2 EB55  EAFB B780 421F BF4C 4CB4
-# Last changed: $LastEdit: 2009-05-25 21:06:01 BST$
+# Last changed: $LastEdit: 2009-05-25 22:58:38 BST$
 # Last committed: $Format:%cd$
 # File revision: $Id$
 #
@@ -105,7 +105,13 @@ class TestSigningOfFiles(object):
         # except to include them in the encoded file as a repeat and that
         # looks silly! I will fix this in a later version, for now, this
         # haxery...
+        # FIXME: Add a magic comment to the top of the encoded data which
+        # tells us what to reproduce when the program is stripped. This is how
+        # the problem should be solved.
         stripped = "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\n" + \
             stripped
         assert self.original_data == stripped
 
+if __name__ == '__main__':
+    import nose
+    nose.main()
