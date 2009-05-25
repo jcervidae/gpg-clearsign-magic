@@ -3,9 +3,9 @@
 #
 # Author: Jonathan Cervidae <jonathan.cervidae@gmail.com>
 # PGP Fingerprint: 2DC0 0A44 123E 6CC2 EB55  EAFB B780 421F BF4C 4CB4
-# Last changed: $LastEdit: 2009-05-25 18:10:29 BST$
+# Last changed: $LastEdit: 2009-05-25 19:34:12 BST$
 
-# TODO: Javascript only at present
+# TODO: Python only at present
 import subprocess
 import sys
 import os
@@ -54,12 +54,10 @@ class Signer(object):
                 footer_close
             )
         else:
-            # TODO: Should I raise exception?
-            to_be_signed = StringIO(self.data)
-            self.ctx.sign(to_be_signed, signed, gpgme.SIG_MODE_CLEAR)
-            self.signed = signed.getvalue()
+            raise NotImplementedError, "I don't know how to handle %s" % \
+                self.magic_identity
         return self.signed
-    def process_python(self):
+    def template_python(self):
         # FIXME: Doesn't handle UTF-8 file marker
         header = ""
         lines = self.data.splitlines(True)
@@ -70,7 +68,6 @@ class Signer(object):
             lines_consumed += 1
         else:
             coding_range = (0,2)
-        # -*- coding: utf-8 -*-
         coding_re = re.compile("^# -\*- coding: .+ -\*-$")
         for line_number in coding_range:
             line = lines[line_number]
@@ -82,18 +79,22 @@ class Signer(object):
         trailer = '"""' + os.linesep
         data = "".join(lines[lines_consumed:])
         return (data, header, '"""' + os.linesep, footer, trailer)
+    def strip_python(self):
+        raise NotImplementedError
 
     def identify(self):
-        return (
-            Signer.file_magic_table[
-                magic.from_buffer(self.data)
-            ]
-        )
+        self.magic_identity = magic.from_buffer(self.data)
+        if self.magic_identity in Signer.file_magic_table:
+            return (
+                Signer.file_magic_table[
+                    self.magic_identity
+                ]
+            )
     file_magic_table = {
         "a python script text executable": "python"
     }
     file_signature_table = {
-        "python": process_python
+        "python": template_python
     }
 
 if __name__ == "__main__":
