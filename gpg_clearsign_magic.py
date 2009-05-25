@@ -3,7 +3,25 @@
 #
 # Author: Jonathan Cervidae <jonathan.cervidae@gmail.com>
 # PGP Fingerprint: 2DC0 0A44 123E 6CC2 EB55  EAFB B780 421F BF4C 4CB4
-# Last changed: $LastEdit: 2009-05-25 20:51:59 BST$
+# Last changed: $LastEdit: 2009-05-25 21:05:19 BST$
+# Last committed: $Format:%cd$
+# File revision: $Id$
+#
+# This file is part of gpg-clearsign-magic.
+#
+# gpg-clearsign-magic is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+#
+# gpg-clearsign-magic is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+# more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# gpg-clearsign-magic in the file COPYING. If not, see
+# <http://www.gnu.org/licenses/>.
 
 # FIXME: GPG home directories don't work properly there needs to be a process
 # fork to preserve the environment for the gpgme workers.
