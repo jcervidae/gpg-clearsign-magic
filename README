@@ -1,0 +1,10 @@
+gpg-clearsign-magic is a simple program deigned to modify interpreted language
+programs such as Python or JavaScript or markup like HTML in a fashion that
+clearsigns them with your PGP key but does not modify the way they are
+interpreted by the machine in any meaningful way. Want to prove it's your
+program? Well when it shows up on archive.org signed with your PGP key you can
+be sure as sure can be that a person can be convinced it is you who wrote this
+code.
+
+So the project exists for that reason and more because it was fun to make.
+Please feel free to tidy it up, contibute and add support for more languages.
