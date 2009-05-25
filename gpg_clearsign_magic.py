@@ -3,7 +3,7 @@
 #
 # Author: Jonathan Cervidae <jonathan.cervidae@gmail.com>
 # PGP Fingerprint: 2DC0 0A44 123E 6CC2 EB55  EAFB B780 421F BF4C 4CB4
-# Last changed: $LastEdit: 2009-05-24 23:17:20 BST$
+# Last changed: $LastEdit: 2009-05-25 17:59:26 BST$
 
 # TODO: Javascript only at present
 import subprocess
@@ -12,19 +12,22 @@ import os
 import tempfile
 import shutil
 import re
+import magic
+import gpgme
+from StringIO import StringIO
 
 class Signer(object):
-    class FIFO(file):
-        def __init__(self, string):
-            self.temp_path = tempfile.mkdtemp()
-            fifo_name = tempfile.mktemp(dir=self.temp_path)
-            os.mkfifo(fifo_name,0600)
-            super(Signer.FIFO, self).__init__(fifo_name, "ab+", 0)
-        def __del__(self):
-#            super(Signer.FIFO, self).__del__()
-            self.close()
-            shutil.rmtree(self.temp_path, ignore_errors=False)
-    def __init__(self,data):
+    def __init__(self,data=None,fingerprint=None,gpg_directory=None):
+        if not data:
+            raise TypeError, "You didn't supply any data"
+        if not fingerprint:
+            raise TypeError, "You didn't supply a fingerprint"
+        if gpg_directory:
+            os.environ['GNUPGHOME'] = gpg_directory
+        ctx = self.ctx = gpgme.Context()
+        ctx.armor = True
+        key = ctx.get_key(fingerprint)
+        ctx.signers = [key]
         self.signed = None
         if self.has_signature(data):
             data = self.strip_signature(data)
@@ -37,42 +40,24 @@ class Signer(object):
     def has_signature(self, data):
         return False
         raise NotImplementedError
-
-    def call_command(self,args, data=None):
-        if data:
-            proc = subprocess.Popen(
-                args,
-                stdin=subprocess.PIPE,stdout=subprocess.PIPE
-            )
-            out, err = proc.communicate(data)
-        else:
-            proc = subprocess.Popen(
-                args,
-                stdout=subprocess.PIPE
-            )
-            out, err = proc.communicate()
-        if proc.returncode is not 0:
-            raise StandardError, (
-                "%s has problem:%s%s" % (
-                    args[0], os.linesep * 2, err
-                )
-            )
-        return(out)
     def sign(self):
-        data = self.data
-        args = ("gpg", "--output", "-", "--clearsign", "-")
+        signed = StringIO()
         if self.file_type in self.file_signature_table:
-            sys.stderr.write("Monkey")
             data, header_open, header_close, footer_open, footer_close = (
                 self.file_signature_table[self.file_type](self)
             )
+            to_be_signed = StringIO(header_close + self.data + footer_open)
+            self.ctx.sign(to_be_signed, signed, gpgme.SIG_MODE_CLEAR)
             self.signed = (
                 header_open +
-                self.call_command(args, header_close + data + footer_open) +
+                signed.getvalue() +
                 footer_close
             )
         else:
-            self.signed = self.call_command(args, data)
+            # TODO: Should I raise exception?
+            to_be_signed = StringIO(self.data)
+            self.ctx.sign(to_be_signed, signed, gpgme.SIG_MODE_CLEAR)
+            self.signed = signed.getvalue()
         return self.signed
     def process_python(self):
         header = ""
@@ -98,17 +83,10 @@ class Signer(object):
         data = os.linesep.join(lines[lines_consumed:])
         return (data, header, '"""' + os.linesep, footer, trailer)
 
-
     def identify(self):
-        # FIXME: Not portable
-        fifo = self.FIFO(self.data)
-        fifo.write(self.data)
-        file_command_says = self.call_command(
-            ("file", "-s", fifo.name)
-        )
         return (
             Signer.file_magic_table[
-                file_command_says[len(fifo.name)+2:].strip()
+                magic.from_buffer(self.data)
             ]
         )
     file_magic_table = {
@@ -122,6 +100,7 @@ if __name__ == "__main__":
     sys.stdout.write(str(Signer(sys.stdin.read())))
 
 
+# Left here as notes for re-implementing javascript handling later
 #    out, err = proc.communicate(
 #        "*/%s%s/*" % (os.linesep, js)
 #    )
