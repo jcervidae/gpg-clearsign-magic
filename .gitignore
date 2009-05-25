@@ -1,0 +1,4 @@
+*.swp
+*.pyc
+.nose-stopwatch-times
+.ropeproject/

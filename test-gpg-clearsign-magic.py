@@ -3,9 +3,13 @@
 #
 # Author: Jonathan Cervidae <jonathan.cervidae@gmail.com>
 # PGP Fingerprint: 2DC0 0A44 123E 6CC2 EB55  EAFB B780 421F BF4C 4CB4
-# Last changed: $LastEdit: 2009-05-24 23:20:54 BST$
+# Last changed: $LastEdit: 2009-05-25 07:48:56 BST$
 
 from gpg_clearsign_magic import *
+
+# gpg --no-default-keyring --local-user B2C7419F --secret-keyring
+# ./secring.gpg --primary-keyring ./pubring.gpg --output - --clearsign
+# test-gpg-clearsign-magic.py
 
 class TestSigningOfFiles(object):
     """I can sign, unsign and resign files with the GPG program using the
