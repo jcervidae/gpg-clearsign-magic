@@ -3,7 +3,7 @@
 #
 # Author: Jonathan Cervidae <jonathan.cervidae@gmail.com>
 # PGP Fingerprint: 2DC0 0A44 123E 6CC2 EB55  EAFB B780 421F BF4C 4CB4
-# Last changed: $LastEdit: 2009-05-25 17:59:26 BST$
+# Last changed: $LastEdit: 2009-05-25 18:10:29 BST$
 
 # TODO: Javascript only at present
 import subprocess
@@ -46,7 +46,7 @@ class Signer(object):
             data, header_open, header_close, footer_open, footer_close = (
                 self.file_signature_table[self.file_type](self)
             )
-            to_be_signed = StringIO(header_close + self.data + footer_open)
+            to_be_signed = StringIO(header_close + data + footer_open)
             self.ctx.sign(to_be_signed, signed, gpgme.SIG_MODE_CLEAR)
             self.signed = (
                 header_open +
@@ -60,13 +60,13 @@ class Signer(object):
             self.signed = signed.getvalue()
         return self.signed
     def process_python(self):
-        header = ""
-        lines = self.data.splitlines()
         # FIXME: Doesn't handle UTF-8 file marker
+        header = ""
+        lines = self.data.splitlines(True)
         lines_consumed = 0
         coding_range = (1,2)
         if lines[0][0:2] == "#!":
-            header += lines[0] + os.linesep
+            header += lines[0]
             lines_consumed += 1
         else:
             coding_range = (0,2)
@@ -76,11 +76,11 @@ class Signer(object):
             line = lines[line_number]
             if coding_re.match(line):
                 lines_consumed += 1
-                header += line + os.linesep
+                header += line
         header += '__pgp_header__ = """' + os.linesep
         footer = os.linesep + '__pgp_signature__ = """' + os.linesep
-        trailer = '"""'
-        data = os.linesep.join(lines[lines_consumed:])
+        trailer = '"""' + os.linesep
+        data = "".join(lines[lines_consumed:])
         return (data, header, '"""' + os.linesep, footer, trailer)
 
     def identify(self):
