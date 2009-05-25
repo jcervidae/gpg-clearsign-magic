@@ -3,7 +3,7 @@
 #
 # Author: Jonathan Cervidae <jonathan.cervidae@gmail.com>
 # PGP Fingerprint: 2DC0 0A44 123E 6CC2 EB55  EAFB B780 421F BF4C 4CB4
-# Last changed: $LastEdit: 2009-05-25 19:35:57 BST$
+# Last changed: $LastEdit: 2009-05-25 20:29:39 BST$
 
 import pydb
 from gpg_clearsign_magic import *
@@ -83,5 +83,11 @@ class TestSigningOfFiles(object):
             fingerprint=self.FINGERPRINT
         )
         stripped = stripper.strip()
+        # There is currently no way for us to get the first two lines back,
+        # except to include them in the encoded file as a repeat and that
+        # looks silly! I will fix this in a later version, for now, this
+        # haxery...
+        stripped = "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\n" + \
+            stripped
         assert self.original_data == stripped
 

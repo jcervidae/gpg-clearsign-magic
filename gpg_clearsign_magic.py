@@ -3,7 +3,7 @@
 #
 # Author: Jonathan Cervidae <jonathan.cervidae@gmail.com>
 # PGP Fingerprint: 2DC0 0A44 123E 6CC2 EB55  EAFB B780 421F BF4C 4CB4
-# Last changed: $LastEdit: 2009-05-25 20:05:57 BST$
+# Last changed: $LastEdit: 2009-05-25 20:27:09 BST$
 
 # FIXME: GPG home directories don't work properly there needs to be a process
 # fork to preserve the environment for the gpgme workers.
@@ -87,10 +87,11 @@ class Signer(object):
                 lines_consumed += 1
                 header += line
         header += '__pgp_header__ = """' + os.linesep
-        footer = os.linesep + '__pgp_signature__ = """' + os.linesep
-        trailer = '"""' + os.linesep
+        footer_open = os.linesep + '__pgp_signature__ = """' + os.linesep
+        footer_close = '"""' + os.linesep
         data = "".join(lines[lines_consumed:])
-        return (data, header, '"""' + os.linesep, footer, trailer)
+        header_close = '"""' + os.linesep
+        return (data, header, header_close, footer_open, footer_close)
     def strip_python(self):
         raise NotImplementedError
 
@@ -103,19 +104,33 @@ class Stripper(object):
         if gpg_directory:
             os.environ['GNUPGHOME'] = gpg_directory
         self.signed = StringIO(data)
+        self.fingerprint = fingerprint
+        self.magic_identity, self.file_type = heuristic_file_type(data)
         self.ctx = gpgme.Context()
     def strip(self):
-        raise NotImplementedError
-        code_without_signature = StringIO()
-        sigs = ctx.verify(self.signed, None, code_without_signature)
-        assert len(sigs) == 1
-        sig = sigs[0]
-        # Check we are now a good signature
-        assert sig.summary == 0
-    def python(self):
-        raise NotImplementedError
+        if self.file_type in FILE_SIGNATURE_TABLE:
+            code_without_signature = StringIO()
+            sigs = self.ctx.verify(self.signed, None, code_without_signature)
+            #sig = sigs[0]
+            self.stripped = FILE_SIGNATURE_TABLE[self.file_type][1](
+                self, code_without_signature.getvalue()
+            )
+            return self.stripped
+            #if sig.fpr != self.fingerprint:
+            # Check we are now a good signature
+            #assert sig.summary == 0
+        else:
+            raise NotImplementedError, "I don't know how to handle %s" % \
+                self.magic_identity
 
-
+    def python(self, code_without_signature):
+        # TODO: Code duplication here
+        header_close = '"""' + os.linesep
+        footer_open = os.linesep + '__pgp_signature__ = """' + os.linesep
+        # We won't have the shebang or the coding marker though :(
+        return code_without_signature[
+            len(header_close) : 0 - len(footer_open)
+        ]
 
 FILE_MAGIC_TABLE = {
     "a python script text executable": "python"
