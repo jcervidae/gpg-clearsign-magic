@@ -3,7 +3,7 @@
 #
 # Author: Jonathan Cervidae <jonathan.cervidae@gmail.com>
 # PGP Fingerprint: 2DC0 0A44 123E 6CC2 EB55  EAFB B780 421F BF4C 4CB4
-# Last changed: $LastEdit: 2009-05-25 20:27:09 BST$
+# Last changed: $LastEdit: 2009-05-25 20:51:59 BST$
 
 # FIXME: GPG home directories don't work properly there needs to be a process
 # fork to preserve the environment for the gpgme workers.
@@ -139,9 +139,35 @@ FILE_SIGNATURE_TABLE = {
     "python": (Signer.python, Stripper.python)
 }
 
-if __name__ == "__main__":
-    sys.stdout.write(str(Signer(sys.stdin.read())))
+def usage():
+    error = """Usage %s <fingerprint>
 
+       You pipe a file to stdin that you wish to have clearsigned.
+
+       fingerprint is the fingerprint of the key you wish to sign with, you
+       can get the key by using gpg --fingerprint. You must supply it as one
+       single argument and remove all the spaces, so for example my key
+       fingerprint is:
+
+       2DC0 0A44 123E 6CC2 EB55  EAFB B780 421F BF4C 4CB4
+
+       I would invoke the command like this:
+
+       %s 2DC00A44123E6CC2EB55EAFBB780421FBF4C4CB4 <program.py >signed.py
+
+       If you want to use a different keyring to normal, set the environment
+       variable GNUPGHOME to a place containing different keyring files.
+""" % ( sys.argv[0], sys.argv[0] )
+
+
+    sys.stderr.write(error)
+    sys.exit(1)
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2: usage()
+    sys.stdout.write(
+        str(Signer(data=sys.stdin.read(),fingerprint=sys.argv[1]))
+    )
 
 # Left here as notes for re-implementing javascript handling later
 #    out, err = proc.communicate(
