@@ -3,7 +3,10 @@
 #
 # Author: Jonathan Cervidae <jonathan.cervidae@gmail.com>
 # PGP Fingerprint: 2DC0 0A44 123E 6CC2 EB55  EAFB B780 421F BF4C 4CB4
-# Last changed: $LastEdit: 2009-05-25 19:34:12 BST$
+# Last changed: $LastEdit: 2009-05-25 20:05:57 BST$
+
+# FIXME: GPG home directories don't work properly there needs to be a process
+# fork to preserve the environment for the gpgme workers.
 
 # TODO: Python only at present
 import subprocess
@@ -12,9 +15,18 @@ import os
 import tempfile
 import shutil
 import re
+# FIXME: Supply our own magic file for portability
 import magic
 import gpgme
 from StringIO import StringIO
+
+def heuristic_file_type(data):
+    magic_identity = magic.from_buffer(data)
+    file_type = None
+    if magic_identity in FILE_MAGIC_TABLE:
+        file_type = FILE_MAGIC_TABLE[magic_identity]
+    return (magic_identity, file_type)
+
 
 class Signer(object):
     def __init__(self,data=None,fingerprint=None,gpg_directory=None):
@@ -32,7 +44,7 @@ class Signer(object):
         if self.has_signature(data):
             data = self.strip_signature(data)
         self.data = data
-        self.file_type = self.identify()
+        self.magic_identity, self.file_type = heuristic_file_type(data)
     def __str__(self):
         if not self.signed:
             self.sign()
@@ -42,9 +54,9 @@ class Signer(object):
         raise NotImplementedError
     def sign(self):
         signed = StringIO()
-        if self.file_type in self.file_signature_table:
+        if self.file_type in FILE_SIGNATURE_TABLE:
             data, header_open, header_close, footer_open, footer_close = (
-                self.file_signature_table[self.file_type](self)
+                FILE_SIGNATURE_TABLE[self.file_type][0](self)
             )
             to_be_signed = StringIO(header_close + data + footer_open)
             self.ctx.sign(to_be_signed, signed, gpgme.SIG_MODE_CLEAR)
@@ -57,7 +69,7 @@ class Signer(object):
             raise NotImplementedError, "I don't know how to handle %s" % \
                 self.magic_identity
         return self.signed
-    def template_python(self):
+    def python(self):
         # FIXME: Doesn't handle UTF-8 file marker
         header = ""
         lines = self.data.splitlines(True)
@@ -82,20 +94,35 @@ class Signer(object):
     def strip_python(self):
         raise NotImplementedError
 
-    def identify(self):
-        self.magic_identity = magic.from_buffer(self.data)
-        if self.magic_identity in Signer.file_magic_table:
-            return (
-                Signer.file_magic_table[
-                    self.magic_identity
-                ]
-            )
-    file_magic_table = {
-        "a python script text executable": "python"
-    }
-    file_signature_table = {
-        "python": template_python
-    }
+class Stripper(object):
+    def __init__(self,data=None,fingerprint=None,gpg_directory=None):
+        if not data:
+            raise TypeError, "You didn't supply any data"
+        if not fingerprint:
+            raise TypeError, "You didn't supply a fingerprint"
+        if gpg_directory:
+            os.environ['GNUPGHOME'] = gpg_directory
+        self.signed = StringIO(data)
+        self.ctx = gpgme.Context()
+    def strip(self):
+        raise NotImplementedError
+        code_without_signature = StringIO()
+        sigs = ctx.verify(self.signed, None, code_without_signature)
+        assert len(sigs) == 1
+        sig = sigs[0]
+        # Check we are now a good signature
+        assert sig.summary == 0
+    def python(self):
+        raise NotImplementedError
+
+
+
+FILE_MAGIC_TABLE = {
+    "a python script text executable": "python"
+}
+FILE_SIGNATURE_TABLE = {
+    "python": (Signer.python, Stripper.python)
+}
 
 if __name__ == "__main__":
     sys.stdout.write(str(Signer(sys.stdin.read())))
