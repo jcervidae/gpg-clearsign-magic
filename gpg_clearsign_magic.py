@@ -3,7 +3,7 @@
 #
 # Author: Jonathan Cervidae <jonathan.cervidae@gmail.com>
 # PGP Fingerprint: 2DC0 0A44 123E 6CC2 EB55  EAFB B780 421F BF4C 4CB4
-# Last changed: $LastEdit: 2009-05-27 10:47:51 BST$
+# Last changed: $LastEdit: 2009-05-27 13:13:35 BST$
 # Last committed: $Format:%cd$
 # File revision: $Id$
 #
@@ -26,14 +26,13 @@
 # FIXME: GPG home directories don't work properly there needs to be a process
 # fork to preserve the environment for the gpgme workers.
 
-# TODO: Python only at present
 import subprocess
 import sys
 import os
 import tempfile
 import shutil
 import re
-# FIXME: Supply our own magic file for portability
+# TODO: Supply our own magic file for portability
 import magic
 import gpgme
 from StringIO import StringIO
@@ -183,7 +182,7 @@ FILE_SIGNATURE_TABLE = {
 }
 
 def usage():
-    error = """Usage %s <fingerprint>
+    error = """Usage %s <fingerprint> [filetype]
 
        You pipe a file to stdin that you wish to have clearsigned.
 
@@ -200,6 +199,15 @@ def usage():
 
        If you want to use a different keyring to normal, set the environment
        variable GNUPGHOME to a place containing different keyring files.
+
+       You can specify filetype if the magic library incorrectly identifies
+       your files. In fact, on reflection the whole magic support is a bit of
+       a gimmick and specifying your file type is a good idea.
+
+       Currently supported file types:
+
+       python
+       javascript
 """ % ( sys.argv[0], sys.argv[0] )
 
 
