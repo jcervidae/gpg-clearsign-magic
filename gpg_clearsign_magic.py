@@ -3,7 +3,7 @@
 #
 # Author: Jonathan Cervidae <jonathan.cervidae@gmail.com>
 # PGP Fingerprint: 2DC0 0A44 123E 6CC2 EB55  EAFB B780 421F BF4C 4CB4
-# Last changed: $LastEdit: 2009-05-25 21:05:19 BST$
+# Last changed: $LastEdit: 2009-05-27 10:47:51 BST$
 # Last committed: $Format:%cd$
 # File revision: $Id$
 #
@@ -47,7 +47,9 @@ def heuristic_file_type(data):
 
 
 class Signer(object):
-    def __init__(self,data=None,fingerprint=None,gpg_directory=None):
+    def __init__(
+        self,data=None,fingerprint=None,gpg_directory=None,file_type=None
+    ):
         if not data:
             raise TypeError, "You didn't supply any data"
         if not fingerprint:
@@ -62,7 +64,10 @@ class Signer(object):
         if self.has_signature(data):
             data = self.strip_signature(data)
         self.data = data
-        self.magic_identity, self.file_type = heuristic_file_type(data)
+        if file_type:
+            self.magic_identity, self.file_type = file_type, file_type
+        else:
+            self.magic_identity, self.file_type = heuristic_file_type(data)
     def __str__(self):
         if not self.signed:
             self.sign()
@@ -110,11 +115,24 @@ class Signer(object):
         data = "".join(lines[lines_consumed:])
         header_close = '"""' + os.linesep
         return (data, header, header_close, footer_open, footer_close)
-    def strip_python(self):
-        raise NotImplementedError
+    def javascript(self):
+        footer_open = header_open = "/*" + os.linesep
+        footer_close = header_close = "*/" + os.linesep
+        return (
+            self.data, header_open, header_close, footer_open, footer_close
+        )
+# Left here as notes for re-implementing javascript handling later
+#    out, err = proc.communicate(
+#        "*/%s%s/*" % (os.linesep, js)
+#    )
+#    sys.stdout.write( "/*%s%s*/%s" % ( os.linesep, out, os.linesep ) )
+#    sys.stdout.flush()
+
 
 class Stripper(object):
-    def __init__(self,data=None,fingerprint=None,gpg_directory=None):
+    def __init__(
+        self,data=None,fingerprint=None,gpg_directory=None,file_type=None
+    ):
         if not data:
             raise TypeError, "You didn't supply any data"
         if not fingerprint:
@@ -123,7 +141,10 @@ class Stripper(object):
             os.environ['GNUPGHOME'] = gpg_directory
         self.signed = StringIO(data)
         self.fingerprint = fingerprint
-        self.magic_identity, self.file_type = heuristic_file_type(data)
+        if file_type:
+            self.magic_identity, self.file_type = file_type, file_type
+        else:
+            self.magic_identity, self.file_type = heuristic_file_type(data)
         self.ctx = gpgme.Context()
     def strip(self):
         if self.file_type in FILE_SIGNATURE_TABLE:
@@ -150,11 +171,15 @@ class Stripper(object):
             len(header_close) : 0 - len(footer_open)
         ]
 
+    def javascript(self):
+        raise NotImplementedError
+
 FILE_MAGIC_TABLE = {
     "a python script text executable": "python"
 }
 FILE_SIGNATURE_TABLE = {
-    "python": (Signer.python, Stripper.python)
+    "python": (Signer.python, Stripper.python),
+    "javascript": (Signer.javascript, Stripper.javascript)
 }
 
 def usage():
@@ -182,15 +207,16 @@ def usage():
     sys.exit(1)
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2: usage()
-    sys.stdout.write(
-        str(Signer(data=sys.stdin.read(),fingerprint=sys.argv[1]))
-    )
-
-# Left here as notes for re-implementing javascript handling later
-#    out, err = proc.communicate(
-#        "*/%s%s/*" % (os.linesep, js)
-#    )
-#    sys.stdout.write( "/*%s%s*/%s" % ( os.linesep, out, os.linesep ) )
-#    sys.stdout.flush()
+    if len(sys.argv) not in (2,3): usage()
+    if len(sys.argv) == 2:
+        sys.stdout.write(
+            str(Signer(data=sys.stdin.read(),fingerprint=sys.argv[1]))
+        )
+    else:
+        # Magic doesn't detect JavaScript :( So allow a quick fix for forcing
+        # file types
+        sys.stdout.write(
+            str(Signer(data=sys.stdin.read(),fingerprint=sys.argv[1],
+            file_type=sys.argv[2]))
+        )
 
